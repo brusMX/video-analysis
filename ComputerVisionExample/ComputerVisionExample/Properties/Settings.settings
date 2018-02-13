@@ -1,0 +1,39 @@
+﻿<?xml version='1.0' encoding='utf-8'?>
+<SettingsFile xmlns="http://schemas.microsoft.com/VisualStudio/2004/01/settings" CurrentProfile="(Default)" GeneratedClassNamespace="ComputerVisionExample.Properties" GeneratedClassName="Settings">
+  <Profiles />
+  <Settings>
+    <Setting Name="FaceAPIKey" Type="System.String" Scope="User">
+      <Value Profile="(Default)">ba0f616beff3459fa7be18683b42684e</Value>
+    </Setting>
+    <Setting Name="EmotionAPIKey" Type="System.String" Scope="User">
+      <Value Profile="(Default)">3b9ac9e6d76747aebb28142cb73b5d8c</Value>
+    </Setting>
+    <Setting Name="VisionAPIKey" Type="System.String" Scope="User">
+      <Value Profile="(Default)">6657d158036e40808cc6e826ec1abdf9</Value>
+    </Setting>
+    <Setting Name="SettingsPanelVisibility" Type="System.Windows.Visibility" Scope="User">
+      <Value Profile="(Default)">Visible</Value>
+    </Setting>
+    <Setting Name="AnalysisInterval" Type="System.TimeSpan" Scope="User">
+      <Value Profile="(Default)">00:00:03</Value>
+    </Setting>
+    <Setting Name="AutoStopEnabled" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">True</Value>
+    </Setting>
+    <Setting Name="AutoStopTime" Type="System.TimeSpan" Scope="Application">
+      <Value Profile="(Default)">00:05:00</Value>
+    </Setting>
+    <Setting Name="FaceAPIHost" Type="System.String" Scope="User">
+      <Value Profile="(Default)">https://westus.api.cognitive.microsoft.com/face/v1.0</Value>
+    </Setting>
+    <Setting Name="EmotionAPIHost" Type="System.String" Scope="User">
+      <Value Profile="(Default)">https://westus.api.cognitive.microsoft.com/emotion/v1.0</Value>
+    </Setting>
+    <Setting Name="VisionAPIHost" Type="System.String" Scope="User">
+      <Value Profile="(Default)">https://westus.api.cognitive.microsoft.com/vision/v1.0</Value>
+    </Setting>
+    <Setting Name="VideoPath" Type="System.String" Scope="User">
+      <Value Profile="(Default)">C:\Users\juswen\Downloads\Videos</Value>
+    </Setting>
+  </Settings>
+</SettingsFile>
