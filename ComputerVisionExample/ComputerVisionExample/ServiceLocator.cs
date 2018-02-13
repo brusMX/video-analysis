@@ -1,20 +1,22 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
+using System;
 
 namespace ComputerVisionExample
 {
     public static class ServiceLocator
     {
+        private static IServiceProvider serviceProvider;
         public static IServiceCollection Collection = new ServiceCollection();
-        public static ServiceProvider Provider
+        public static IServiceProvider Provider
         {
             get
             {
-                if (Provider == null)
+                if (serviceProvider == null)
                 {
-                    return Collection.BuildServiceProvider();
+                    serviceProvider = Collection.BuildServiceProvider();
                 }
 
-                return Provider;
+                return serviceProvider;
             }
         }
 
@@ -28,6 +30,16 @@ namespace ComputerVisionExample
             where TImplementation : class, TService
         {
             Collection.AddScoped<TService, TImplementation>();
+        }
+
+        public static void RegisterService<TService, TImplementation>(Func<IServiceProvider, TImplementation> serviceProviderFunction)
+            where TService : class
+            where TImplementation : class, TService
+        {
+            Collection.AddScoped<TService, TImplementation>(sp =>
+            {
+                return serviceProviderFunction(sp);
+            });
         }
     }
 }

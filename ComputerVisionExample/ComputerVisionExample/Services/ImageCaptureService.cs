@@ -7,6 +7,7 @@ using Microsoft.ProjectOxford.Vision.Contract;
 using OpenCvSharp;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -18,6 +19,7 @@ namespace ComputerVisionExample
     public interface IImageCaptureService
     {
         Task FetchVideoFromCameraAsync(int cameraIndex = 0, double overrideFps = 0);
+        Task FetchVideoFromFileAsync(FileInfo fileInfo, double overrideFps = 0);
     }
 
     public class ImageCaptureService
@@ -52,6 +54,18 @@ namespace ComputerVisionExample
             }
 
             await Task.Factory.StartNew(() => StartProcessing(videoCapture, 0, TimeSpan.FromSeconds(1 / fps), () => DateTime.Now));
+        }
+
+        public async Task FetchVideoFromFileAsync(FileInfo fileInfo, double overrideFps = 0)
+        {
+            var fileCapture = new VideoCapture(fileInfo.FullName);
+            var fps = overrideFps;
+            if (fps == 0)
+            {
+                fps = 30;
+            }
+
+            await Task.Factory.StartNew(() => StartProcessing(fileCapture, 0, TimeSpan.FromSeconds(1 / fps), () => DateTime.Now));
         }
 
         protected void StartProcessing(VideoCapture videoCapture, int frameCount, TimeSpan delay, Func<DateTime> timestampFunction)
