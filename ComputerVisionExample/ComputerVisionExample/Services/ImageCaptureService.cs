@@ -20,6 +20,11 @@ namespace ComputerVisionExample
     {
         Task FetchVideoFromCameraAsync(int cameraIndex = 0, double overrideFps = 0);
         Task FetchVideoFromFileAsync(FileInfo fileInfo, double overrideFps = 0);
+        Task FetchImageFromFileAsync(FileInfo fileInfo);
+
+        IEnumerable<Emotion> Emotions { get; set; }
+        IEnumerable<Face> Faces { get; set; }
+        AnalysisResult Analysis { get; set; }
     }
 
     public class ImageCaptureService
@@ -42,7 +47,8 @@ namespace ComputerVisionExample
 
         public IEnumerable<Emotion> Emotions { get; set; }
         public IEnumerable<Face> Faces { get; set; }
-        public AnalysisResult AnalysisResult { get; set; }
+        public AnalysisResult Analysis { get; set; }
+        public bool Stopping { get; set; }
 
         public async Task FetchVideoFromCameraAsync(int cameraIndex = 0, double overrideFps = 0)
         {
@@ -53,7 +59,7 @@ namespace ComputerVisionExample
                 fps = 30;
             }
 
-            await Task.Factory.StartNew(() => StartProcessing(videoCapture, 0, TimeSpan.FromSeconds(1 / fps), () => DateTime.Now));
+            await Task.Factory.StartNew(() => StartProcessing(videoCapture, 0, TimeSpan.FromSeconds(1 / fps)));
         }
 
         public async Task FetchVideoFromFileAsync(FileInfo fileInfo, double overrideFps = 0)
@@ -65,33 +71,59 @@ namespace ComputerVisionExample
                 fps = 30;
             }
 
-            await Task.Factory.StartNew(() => StartProcessing(fileCapture, 0, TimeSpan.FromSeconds(1 / fps), () => DateTime.Now));
+            await Task.Factory.StartNew(() => StartProcessing(fileCapture, 0, TimeSpan.FromSeconds(1 / fps)));
         }
 
-        protected void StartProcessing(VideoCapture videoCapture, int frameCount, TimeSpan delay, Func<DateTime> timestampFunction)
+        public async Task FetchImageFromFileAsync(FileInfo fileInfo)
         {
-            var timer = new Timer(async state =>
+            using (FileStream fileStream = File.OpenRead(fileInfo.FullName))
             {
-                await Task.Factory.StartNew(async () =>
-                {
-                    var capture = state as VideoCapture;
-                    var timestamp = timestampFunction();
-                    var image = new Mat();
+                var memoryStream = new MemoryStream();
+                memoryStream.SetLength(fileStream.Length);
+                fileStream.Read(memoryStream.GetBuffer(), 0, (int)fileStream.Length);
 
-                    VideoFrameMetadata videoFrameMetadata;
-                    videoFrameMetadata.Index = frameCount;
-                    videoFrameMetadata.Timestamp = timestamp;
-                    capture.Read(image);
-
-                    var videoFrame = new VideoFrame(image, videoFrameMetadata);
-                    await AnalyzeEmotionAsync(videoFrame);
-                });
-            }, videoCapture, TimeSpan.Zero, delay);
+                await AnalyzeEmotionAsync(memoryStream, null);
+                await AnalyzeFaceAsync(memoryStream);
+                await AnalyzeVisionAsync(memoryStream);
+            }
         }
 
-        protected async Task AnalyzeFaceAsync(VideoFrame videoFrame)
+        protected void StartProcessing(VideoCapture videoCapture, int frameCount, TimeSpan delay)
         {
-            var imageStream = videoFrame.Image.ToMemoryStream(".jpg", jpegParameters);
+            var timer = new Timer(state =>
+            {
+                var passedValues = new InsideState()
+                {
+                    VideoCapture = videoCapture,
+                    FrameCount = frameCount++,
+                };
+
+                new Timer(async insideState => await ProcessStream(insideState), passedValues, 1000, delay.Milliseconds);
+            }, videoCapture, 1000, delay.Milliseconds);
+        }
+
+        protected async Task ProcessStream(object state)
+        {
+            await Task.Factory.StartNew(async () =>
+            {
+                var insideState = state as InsideState;
+                DateTime timestamp() => DateTime.Now;
+                var image = new Mat();
+
+                VideoFrameMetadata videoFrameMetadata;
+                videoFrameMetadata.Index = insideState.FrameCount;
+                videoFrameMetadata.Timestamp = timestamp();
+                insideState.VideoCapture.Read(image);
+
+                var videoFrame = new VideoFrame(image, videoFrameMetadata);
+                await AnalyzeEmotionAsync(videoFrame.Image.ToMemoryStream(".jpg", jpegParameters), (IEnumerable<Rect>)videoFrame.UserData);
+                await AnalyzeFaceAsync(videoFrame.Image.ToMemoryStream(".jpg", jpegParameters));
+                await AnalyzeVisionAsync(videoFrame.Image.ToMemoryStream(".jpg", jpegParameters));
+            });
+        }
+
+        protected async Task AnalyzeFaceAsync(Stream imageStream)
+        {
             var faceAttributes = new List<FaceAttributeType>()
             {
                 FaceAttributeType.Age,
@@ -101,9 +133,8 @@ namespace ComputerVisionExample
             Faces = await faceServiceClient.DetectAsync(imageStream, returnFaceAttributes: faceAttributes);
         }
 
-        protected async Task AnalyzeVisionAsync(VideoFrame videoFrame)
+        protected async Task AnalyzeVisionAsync(Stream imageStream)
         {
-            var imageStream = videoFrame.Image.ToMemoryStream(".jpg", jpegParameters);
             var visualFeatures = new List<VisualFeature>()
             {
                 VisualFeature.Adult,
@@ -116,10 +147,8 @@ namespace ComputerVisionExample
             var analysisResult = await visionServiceClient.AnalyzeImageAsync(imageStream, visualFeatures);
         }
 
-        protected async Task AnalyzeEmotionAsync(VideoFrame videoFrame)
+        protected async Task AnalyzeEmotionAsync(Stream imageStream, IEnumerable<Rect> localFaces)
         {
-            var imageStream = videoFrame.Image.ToMemoryStream(".jpg", jpegParameters);
-            var localFaces = (IEnumerable<Rect>)videoFrame.UserData;
             if (localFaces == null)
             {
                 // If localFaces is null, we're not performing local face detection.

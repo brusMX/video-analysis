@@ -168,6 +168,7 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Compile Include="Models\InsideState.cs" />
     <Compile Include="Models\VideoFrame.cs" />
     <Compile Include="Models\VideoFrameMetadata.cs" />
     <Compile Include="ServiceLocator.cs" />
